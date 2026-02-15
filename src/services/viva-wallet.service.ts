@@ -138,6 +138,14 @@ export class VivaWalletService {
     if (params.paymentMethod) {
       url += `&paymentMethod=${encodeURIComponent(params.paymentMethod)}`;
     }
+
+    if (params.successUrl) {
+      url += `&successUrl=${encodeURIComponent(params.successUrl)}`;
+    }
+
+    if (params.failureUrl) {
+      url += `&failureUrl=${encodeURIComponent(params.failureUrl)}`;
+    }
     
     return url;
   }

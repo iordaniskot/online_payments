@@ -64,12 +64,14 @@ function getQueryParam(query: Record<string, unknown>, key: string): string | un
  * 
  * Callback Configuration (for webhook forwarding):
  * - callback: {
- *     successUrl: URL to call on successful payment
- *     failureUrl: URL to call on failed payment
+ *     successUrl: URL to POST webhook on successful payment
+ *     failureUrl: URL to POST webhook on failed payment
  *     webhookUrl: Single URL for all events
  *     secret: Secret for signing webhook payloads
  *     includeRawPayload: Include original Viva payload
  *     metadata: Custom data to include in callbacks
+ *     redirectSuccessUrl: Browser redirect URL after successful payment
+ *     redirectFailureUrl: Browser redirect URL after failed payment
  *   }
  */
 router.post('/orders', async (req: Request, res: Response): Promise<void> => {
@@ -150,6 +152,8 @@ router.post('/orders', async (req: Request, res: Response): Promise<void> => {
     // Generate checkout URL for the customer
     const checkoutUrl = vivaWalletService.getCheckoutUrl({
       orderCode: result.orderCode,
+      successUrl: callback?.redirectSuccessUrl,
+      failureUrl: callback?.redirectFailureUrl,
     });
 
     res.status(201).json({

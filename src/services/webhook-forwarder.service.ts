@@ -52,6 +52,8 @@ export interface CallbackConfig {
   secret?: string; // Secret for signing payloads
   includeRawPayload?: boolean;
   metadata?: Record<string, unknown>; // Custom data to include in callbacks
+  redirectSuccessUrl?: string; // Browser redirect URL after successful payment
+  redirectFailureUrl?: string; // Browser redirect URL after failed payment
 }
 
 // In-memory store for callback configurations (per orderCode)

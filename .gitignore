@@ -37,3 +37,5 @@ coverage/
 # Misc
 *.tmp
 *.temp
+
+demo-server/

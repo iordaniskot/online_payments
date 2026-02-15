@@ -342,4 +342,6 @@ export interface CheckoutUrlParams {
   orderCode: number;
   color?: string | undefined;
   paymentMethod?: string | undefined;
+  successUrl?: string | undefined;
+  failureUrl?: string | undefined;
 }
