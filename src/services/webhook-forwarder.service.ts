@@ -143,12 +143,12 @@ class WebhookForwarderService {
       return true;
     } catch (error) {
       const axiosError = error as AxiosError;
-      console.error(`Failed to forward webhook to ${url}:`, {
-        event: payload.event,
-        orderCode: payload.data.orderCode,
-        error: axiosError.message,
-        status: axiosError.response?.status,
-      });
+      // console.error(`Failed to forward webhook to ${url}:`, {
+      //   event: payload.event,
+      //   orderCode: payload.data.orderCode,
+      //   error: axiosError.message,
+      //   status: axiosError.response?.status,
+      // });
       return false;
     }
   }
