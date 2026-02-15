@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
+import axios from 'axios';
 import type { WebhookPayload } from '../types/viva.types.js';
 import { webhookForwarderService } from '../services/webhook-forwarder.service.js';
+import { vivaConfig } from '../config/viva.config.js';
 
 const router = Router();
 
@@ -31,18 +33,31 @@ function verifySignature(payload: string, signature: string): boolean {
 
 /**
  * Webhook verification endpoint
- * Viva Wallet sends a GET request to verify the webhook URL
+ * Viva Wallet sends a GET request to verify the webhook URL.
+ * We must call Viva's token API with Basic Auth and return the key.
  * GET /api/webhooks/viva
  */
-router.get('/viva', (req: Request, res: Response) => {
-  // Return the verification key that Viva sends
-  const verificationKey = req.query['Key'];
-  
-  if (verificationKey) {
-    // Return just the key as plain text (required by Viva)
-    res.type('text/plain').send(verificationKey);
-  } else {
-    res.status(400).send('Missing verification key');
+router.get('/viva', async (req: Request, res: Response) => {
+  try {
+    const isDemo = process.env.VIVA_ENVIRONMENT !== 'production';
+    const tokenUrl = isDemo
+      ? 'https://demo.vivapayments.com/api/messages/config/token'
+      : 'https://www.vivapayments.com/api/messages/config/token';
+
+    const credentials = Buffer.from(
+      `${vivaConfig.merchantId}:${vivaConfig.apiKey}`
+    ).toString('base64');
+
+    const response = await axios.get(tokenUrl, {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+      },
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Webhook verification failed:', error);
+    res.status(500).json({ error: 'Verification failed' });
   }
 });
 
