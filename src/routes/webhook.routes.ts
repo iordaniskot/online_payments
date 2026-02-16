@@ -33,9 +33,9 @@ function verifySignature(payload: string, signature: string, secret: string): bo
  * Viva Wallet sends a GET request to verify the webhook URL.
  * GET /api/webhooks/viva/:merchantKey
  */
-router.get('/viva/rhodesholidays-webhook', async (req: Request, res: Response) => {
+router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
     try {
-        const merchantKey = "rhodesholidays";
+        const merchantKey = req.params['merchantKey'] as string;
         const merchant = getMerchantByKey(merchantKey);
 
         if (!merchant) {
