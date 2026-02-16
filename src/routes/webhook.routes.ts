@@ -43,10 +43,10 @@ router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
       return;
     }
 
-    const isDemo = merchant.vivaConfig.authUrl.includes('demo');
-    const tokenUrl = isDemo
-      ? 'https://demo.vivapayments.com/api/messages/config/token'
-      : 'https://www.vivapayments.com/api/messages/config/token';
+    // const isDemo = merchant.vivaConfig.authUrl.includes('demo');
+    const tokenUrl =
+      'https://demo.vivapayments.com/api/messages/config/token';
+      // 'https://www.vivapayments.com/api/messages/config/token';
 
     const credentials = Buffer.from(
       `${merchant.vivaConfig.merchantId}:${merchant.vivaConfig.apiKey}`
@@ -58,7 +58,6 @@ router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
       },
     });
 
-    // Viva's verification expects lowercase "key"
     res.json(response.data);
   } catch (error) {
     console.error('Webhook verification failed:', error);
