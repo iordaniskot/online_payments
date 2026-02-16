@@ -59,7 +59,7 @@ router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
     });
 
     // Viva's verification expects lowercase "key"
-    res.json({ key: response.data.Key });
+    res.json(response.data);
   } catch (error) {
     console.error('Webhook verification failed:', error);
     res.status(500).json({ error: 'Verification failed' });
