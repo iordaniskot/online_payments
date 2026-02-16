@@ -4,24 +4,21 @@ import crypto from 'crypto';
 import axios from 'axios';
 import type { WebhookPayload } from '../types/viva.types.js';
 import { webhookForwarderService } from '../services/webhook-forwarder.service.js';
-import { vivaConfig } from '../config/viva.config.js';
+import { getMerchantByKey } from '../config/merchant.config.js';
 
 const router = Router();
 
-// Webhook secret for signature verification
-const WEBHOOK_SECRET = process.env.VIVA_WEBHOOK_SECRET || '';
-
 /**
- * Verify webhook signature
+ * Verify webhook signature using the merchant's webhook secret
  */
-function verifySignature(payload: string, signature: string): boolean {
-  if (!WEBHOOK_SECRET) {
+function verifySignature(payload: string, signature: string, secret: string): boolean {
+  if (!secret) {
     console.warn('Webhook secret not configured, skipping verification');
     return true;
   }
 
   const expectedSignature = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
+    .createHmac('sha256', secret)
     .update(payload)
     .digest('hex');
 
@@ -32,20 +29,27 @@ function verifySignature(payload: string, signature: string): boolean {
 }
 
 /**
- * Webhook verification endpoint
+ * Webhook verification endpoint (per merchant)
  * Viva Wallet sends a GET request to verify the webhook URL.
- * We must call Viva's token API with Basic Auth and return the key.
- * GET /api/webhooks/viva
+ * GET /api/webhooks/viva/:merchantKey
  */
-router.get('/viva', async (req: Request, res: Response) => {
+router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
   try {
-    const isDemo = process.env.VIVA_ENVIRONMENT !== 'production';
+    const merchantKey = req.params['merchantKey'] as string;
+    const merchant = getMerchantByKey(merchantKey);
+
+    if (!merchant) {
+      res.status(404).json({ error: 'Merchant not found' });
+      return;
+    }
+
+    const isDemo = merchant.vivaConfig.authUrl.includes('demo');
     const tokenUrl = isDemo
       ? 'https://demo.vivapayments.com/api/messages/config/token'
       : 'https://www.vivapayments.com/api/messages/config/token';
 
     const credentials = Buffer.from(
-      `${vivaConfig.merchantId}:${vivaConfig.apiKey}`
+      `${merchant.vivaConfig.merchantId}:${merchant.vivaConfig.apiKey}`
     ).toString('base64');
 
     const response = await axios.get(tokenUrl, {
@@ -62,20 +66,28 @@ router.get('/viva', async (req: Request, res: Response) => {
 });
 
 /**
- * Webhook receiver endpoint
+ * Webhook receiver endpoint (per merchant)
  * Viva Wallet sends POST requests for payment events
- * POST /api/webhooks/viva
+ * POST /api/webhooks/viva/:merchantKey
  */
-router.post('/viva', async (req: Request, res: Response) => {
+router.post('/viva/:merchantKey', async (req: Request, res: Response) => {
   try {
+    const merchantKey = req.params['merchantKey'] as string;
+    const merchant = getMerchantByKey(merchantKey);
+
+    if (!merchant) {
+      res.status(404).json({ error: 'Merchant not found' });
+      return;
+    }
+
     // Get signature from headers
     const signature = req.headers['viva-signature-256'] as string;
 
     // Verify signature if secret is configured
-    if (WEBHOOK_SECRET && signature) {
+    if (merchant.webhookSecret && signature) {
       const rawBody = JSON.stringify(req.body);
-      if (!verifySignature(rawBody, signature)) {
-        console.error('Invalid webhook signature');
+      if (!verifySignature(rawBody, signature, merchant.webhookSecret)) {
+        console.error(`Invalid webhook signature for merchant ${merchantKey}`);
         res.status(401).json({ error: 'Invalid signature' });
         return;
       }
@@ -83,7 +95,7 @@ router.post('/viva', async (req: Request, res: Response) => {
 
     const payload: WebhookPayload = req.body;
 
-    console.log('Received Viva webhook:', {
+    console.log(`Received Viva webhook for merchant ${merchantKey}:`, {
       eventTypeId: payload.EventTypeId,
       transactionId: payload.EventData?.TransactionId,
       orderCode: payload.EventData?.OrderCode,
@@ -211,7 +223,7 @@ async function handleTransactionReversalCreated(
 
 /**
  * Test endpoint to simulate Viva webhooks (for local development)
- * POST /api/webhooks/viva/test
+ * POST /api/webhooks/test-simulate
  * 
  * Body: {
  *   orderCode: number,
@@ -220,7 +232,7 @@ async function handleTransactionReversalCreated(
  *   transactionId?: string
  * }
  */
-router.post('/viva/test', async (req: Request, res: Response): Promise<void> => {
+router.post('/test-simulate', async (req: Request, res: Response): Promise<void> => {
   if (process.env.NODE_ENV === 'production') {
     res.status(403).json({ error: 'Test endpoint disabled in production' });
     return;

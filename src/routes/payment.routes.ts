@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { vivaWalletService } from '../services/viva-wallet.service.js';
 import { webhookForwarderService } from '../services/webhook-forwarder.service.js';
 import type { CallbackConfig } from '../services/webhook-forwarder.service.js';
 import type {
@@ -130,11 +129,19 @@ router.post('/orders', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const result = await vivaWalletService.createPaymentOrder(orderRequest);
+    const result = await req.vivaService!.createPaymentOrder(orderRequest);
 
     // Register callback URLs for this order
     if (callback) {
-      webhookForwarderService.registerCallback(result.orderCode, callback);
+      webhookForwarderService.registerCallback(result.orderCode, {
+        ...callback,
+        merchantKey: req.merchantKey,
+      });
+      console.log(`Registered callbacks for order ${result.orderCode}:`, {
+        successUrl: callback.successUrl ? '✓' : '✗',
+        failureUrl: callback.failureUrl ? '✓' : '✗',
+        webhookUrl: callback.webhookUrl ? '✓' : '✗',
+      });
       
       // Optionally notify that order was created
       await webhookForwarderService.forwardOrderCreated(
@@ -150,7 +157,7 @@ router.post('/orders', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generate checkout URL for the customer
-    const checkoutUrl = vivaWalletService.getCheckoutUrl({
+    const checkoutUrl = req.vivaService!.getCheckoutUrl({
       orderCode: result.orderCode,
       successUrl: callback?.redirectSuccessUrl,
       failureUrl: callback?.redirectFailureUrl,
@@ -189,7 +196,7 @@ router.get('/orders/:orderCode', async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const order = await vivaWalletService.getOrder(orderCode);
+    const order = await req.vivaService!.getOrder(orderCode);
 
     res.json({
       success: true,
@@ -220,7 +227,7 @@ router.patch('/orders/:orderCode', async (req: Request, res: Response): Promise<
       return;
     }
 
-    await vivaWalletService.updateOrder(orderCode, updateRequest);
+    await req.vivaService!.updateOrder(orderCode, updateRequest);
 
     res.json({
       success: true,
@@ -250,7 +257,7 @@ router.delete('/orders/:orderCode', async (req: Request, res: Response): Promise
       return;
     }
 
-    await vivaWalletService.cancelOrder(orderCode);
+    await req.vivaService!.cancelOrder(orderCode);
 
     res.json({
       success: true,
@@ -272,7 +279,7 @@ router.get('/transactions/:transactionId', async (req: Request, res: Response): 
   try {
     const transactionId = getParam(req.params, 'transactionId');
 
-    const transaction = await vivaWalletService.getTransaction(transactionId);
+    const transaction = await req.vivaService!.getTransaction(transactionId);
 
     res.json({
       success: true,
@@ -302,7 +309,7 @@ router.post('/transactions/:transactionId', async (req: Request, res: Response):
       return;
     }
 
-    const result = await vivaWalletService.createTransaction(
+    const result = await req.vivaService!.createTransaction(
       transactionId,
       transactionRequest
     );
@@ -331,7 +338,7 @@ router.delete('/transactions/:transactionId', async (req: Request, res: Response
     
     const amount = amountStr ? parseInt(amountStr, 10) : undefined;
 
-    const result = await vivaWalletService.cancelTransaction(
+    const result = await req.vivaService!.cancelTransaction(
       transactionId,
       amount,
       sourceCode
@@ -365,7 +372,7 @@ router.post('/transactions/:transactionId/refund', async (req: Request, res: Res
       return;
     }
 
-    const result = await vivaWalletService.fastRefund(
+    const result = await req.vivaService!.fastRefund(
       transactionId,
       amount,
       sourceCode,
@@ -399,7 +406,7 @@ router.post('/card-tokens', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const result = await vivaWalletService.createCardToken({
+    const result = await req.vivaService!.createCardToken({
       transactionId,
       groupId,
     });
@@ -434,7 +441,7 @@ router.get('/checkout-url/:orderCode', (req: Request, res: Response): void => {
       return;
     }
 
-    const checkoutUrl = vivaWalletService.getCheckoutUrl({
+    const checkoutUrl = req.vivaService!.getCheckoutUrl({
       orderCode,
       color,
       paymentMethod,

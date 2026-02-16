@@ -38,4 +38,6 @@ coverage/
 *.tmp
 *.temp
 
+nodemon.json
+
 demo-server/

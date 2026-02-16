@@ -54,6 +54,7 @@ export interface CallbackConfig {
   metadata?: Record<string, unknown>; // Custom data to include in callbacks
   redirectSuccessUrl?: string; // Browser redirect URL after successful payment
   redirectFailureUrl?: string; // Browser redirect URL after failed payment
+  merchantKey?: string | undefined; // Merchant key for webhook routing
 }
 
 // In-memory store for callback configurations (per orderCode)

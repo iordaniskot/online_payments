@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { vivaWalletService } from '../services/viva-wallet.service.js';
 
 const router = Router();
 
@@ -10,7 +9,7 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const wallets = await vivaWalletService.getWallets();
+    const wallets = await req.vivaService!.getWallets();
 
     res.json({
       success: true,

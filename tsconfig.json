@@ -10,7 +10,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "es6",
-    "types": [],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError } from 'axios';
-import vivaConfig, { VIVA_SCOPES } from '../config/viva.config.js';
+import type { VivaConfig } from '../config/viva.config.js';
 import type {
   VivaTokenResponse,
   CreatePaymentOrderRequest,
@@ -25,8 +25,10 @@ export class VivaWalletService {
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
   private axiosInstance: AxiosInstance;
+  private config: VivaConfig;
 
-  constructor() {
+  constructor(config: VivaConfig) {
+    this.config = config;
     // Axios instance for OAuth2 authenticated requests
     this.axiosInstance = axios.create({
       headers: {
@@ -40,7 +42,7 @@ export class VivaWalletService {
    */
   private getBasicAuthHeader(): string {
     return `Basic ${Buffer.from(
-      `${vivaConfig.merchantId}:${vivaConfig.apiKey}`
+      `${this.config.merchantId}:${this.config.apiKey}`
     ).toString('base64')}`;
   }
 
@@ -68,7 +70,7 @@ export class VivaWalletService {
 
     try {
       const response = await axios.post<VivaTokenResponse>(
-        `${vivaConfig.authUrl}/connect/token`,
+        `${this.config.authUrl}/connect/token`,
         new URLSearchParams({
           grant_type: 'client_credentials',
         }).toString(),
@@ -76,7 +78,7 @@ export class VivaWalletService {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Authorization: `Basic ${Buffer.from(
-              `${vivaConfig.clientId}:${vivaConfig.clientSecret}`
+              `${this.config.clientId}:${this.config.clientSecret}`
             ).toString('base64')}`,
           },
         }
@@ -106,10 +108,10 @@ export class VivaWalletService {
 
     try {
       const response = await this.axiosInstance.post<CreatePaymentOrderResponse>(
-        `${vivaConfig.apiUrl}/checkout/v2/orders`,
+        `${this.config.apiUrl}/checkout/v2/orders`,
         {
           ...request,
-          sourceCode: request.sourceCode || vivaConfig.sourceCode,
+          sourceCode: request.sourceCode || this.config.sourceCode,
         },
         {
           headers: {
@@ -129,7 +131,7 @@ export class VivaWalletService {
    * Generate checkout URL for customer redirect
    */
   getCheckoutUrl(params: CheckoutUrlParams): string {
-    let url = `${vivaConfig.checkoutUrl}/web/checkout?ref=${params.orderCode}`;
+    let url = `${this.config.checkoutUrl}/web/checkout?ref=${params.orderCode}`;
     
     if (params.color) {
       url += `&color=${encodeURIComponent(params.color)}`;
@@ -157,7 +159,7 @@ export class VivaWalletService {
   async getOrder(orderCode: number): Promise<RetrieveOrderResponse> {
     try {
       const response = await axios.get<RetrieveOrderResponse>(
-        `${vivaConfig.ordersApiUrl}/api/orders/${orderCode}`,
+        `${this.config.ordersApiUrl}/api/orders/${orderCode}`,
         this.getBasicAuthConfig()
       );
 
@@ -178,7 +180,7 @@ export class VivaWalletService {
   ): Promise<void> {
     try {
       await axios.patch(
-        `${vivaConfig.ordersApiUrl}/api/orders/${orderCode}`,
+        `${this.config.ordersApiUrl}/api/orders/${orderCode}`,
         request,
         this.getBasicAuthConfig()
       );
@@ -195,7 +197,7 @@ export class VivaWalletService {
   async cancelOrder(orderCode: number): Promise<void> {
     try {
       await axios.delete(
-        `${vivaConfig.ordersApiUrl}/api/orders/${orderCode}`,
+        `${this.config.ordersApiUrl}/api/orders/${orderCode}`,
         this.getBasicAuthConfig()
       );
     } catch (error) {
@@ -214,7 +216,7 @@ export class VivaWalletService {
 
     try {
       const response = await this.axiosInstance.get<RetrieveTransactionResponse>(
-        `${vivaConfig.apiUrl}/checkout/v2/transactions/${transactionId}`,
+        `${this.config.apiUrl}/checkout/v2/transactions/${transactionId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -239,7 +241,7 @@ export class VivaWalletService {
   ): Promise<CreateTransactionResponse> {
     try {
       const response = await axios.post<CreateTransactionResponse>(
-        `${vivaConfig.ordersApiUrl}/api/transactions/${transactionId}`,
+        `${this.config.ordersApiUrl}/api/transactions/${transactionId}`,
         request,
         this.getBasicAuthConfig()
       );
@@ -261,7 +263,7 @@ export class VivaWalletService {
     sourceCode?: string
   ): Promise<CancelTransactionResponse> {
     try {
-      let url = `${vivaConfig.ordersApiUrl}/api/transactions/${transactionId}`;
+      let url = `${this.config.ordersApiUrl}/api/transactions/${transactionId}`;
       const params = new URLSearchParams();
       
       if (amount !== undefined) {
@@ -295,7 +297,7 @@ export class VivaWalletService {
 
     try {
       const response = await this.axiosInstance.post<CreateCardTokenResponse>(
-        `${vivaConfig.apiUrl}/acquiring/v1/cards/tokens`,
+        `${this.config.apiUrl}/acquiring/v1/cards/tokens`,
         request,
         {
           headers: {
@@ -319,7 +321,7 @@ export class VivaWalletService {
 
     try {
       const response = await this.axiosInstance.get<VivaWallet[]>(
-        `${vivaConfig.apiUrl}/merchants/v1/wallets`,
+        `${this.config.apiUrl}/merchants/v1/wallets`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -347,7 +349,7 @@ export class VivaWalletService {
 
     try {
       const response = await this.axiosInstance.post<{ transactionId: string }>(
-        `${vivaConfig.apiUrl}/acquiring/v1/transactions/${transactionId}:fastrefund`,
+        `${this.config.apiUrl}/acquiring/v1/transactions/${transactionId}:fastrefund`,
         {
           amount,
           sourceCode: sourceCode || 'Default',
@@ -383,7 +385,3 @@ export class VivaWalletService {
     }
   }
 }
-
-// Export singleton instance
-export const vivaWalletService = new VivaWalletService();
-export default vivaWalletService;

@@ -10,8 +10,9 @@ import paymentRoutes from './routes/payment.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import walletRoutes from './routes/wallet.routes.js';
 
-// Import config validation
-import { validateVivaConfig } from './config/viva.config.js';
+// Import merchant config
+import { loadMerchantConfigs, validateMerchantConfigs, getAllMerchants } from './config/merchant.config.js';
+import { authMiddleware } from './middleware/auth.middleware.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -41,10 +42,12 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-// API Routes
-app.use('/api/payments', paymentRoutes);
+// API Routes — payment & wallet routes require X-Api-Key auth
+app.use('/api/payments', authMiddleware, paymentRoutes);
+app.use('/api/wallets', authMiddleware, walletRoutes);
+
+// Webhook routes use :merchantKey path param instead of X-Api-Key
 app.use('/api/webhooks', webhookRoutes);
-app.use('/api/wallets', walletRoutes);
 
 // Payment redirect endpoints (after Viva checkout)
 app.get('/payment/success', (req: Request, res: Response) => {
@@ -55,11 +58,6 @@ app.get('/payment/success', (req: Request, res: Response) => {
     orderCode,
     lang,
   });
-
-  // In a real application, you would:
-  // 1. Verify the transaction status
-  // 2. Update your order in the database
-  // 3. Redirect to a proper success page
 
   res.json({
     success: true,
@@ -103,8 +101,14 @@ app.use((err: Error, req: Request, res: Response, next: Function) => {
   });
 });
 
-// Start server
+// Load merchant configurations and start server
+loadMerchantConfigs();
+
 app.listen(port, () => {
+
+
+
+
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -112,7 +116,7 @@ app.listen(port, () => {
 ║                                                           ║
 ║   Server running at http://localhost:${port}               ║
 ║                                                           ║
-║   API Endpoints:                                          ║
+║   API Endpoints (require X-Api-Key header):               ║
 ║   • POST   /api/payments/orders          - Create order   ║
 ║   • GET    /api/payments/orders/:code    - Get order      ║
 ║   • PATCH  /api/payments/orders/:code    - Update order   ║
@@ -122,19 +126,23 @@ app.listen(port, () => {
 ║   • DELETE /api/payments/transactions/:id - Refund        ║
 ║   • POST   /api/payments/card-tokens     - Save card      ║
 ║   • GET    /api/wallets                  - Get wallets    ║
-║   • GET/POST /api/webhooks/viva          - Webhooks       ║
+║                                                           ║
+║   Webhook Endpoints (per merchant):                       ║
+║   • GET/POST /api/webhooks/viva/:merchantKey              ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
 
-  // Validate Viva Wallet configuration
-  if (!validateVivaConfig()) {
-    console.log("Environment variables:", {
-      VIVA_CLIENT_ID: process.env.VIVA_CLIENT_ID ? 'SET' : 'MISSING',
-      VIVA_CLIENT_SECRET: process.env.VIVA_CLIENT_SECRET ? 'SET' : 'MISSING',
-    });
-    console.warn('⚠️  Viva Wallet configuration incomplete. Check your .env file.');
+  if (!validateMerchantConfigs()) {
+    console.warn('⚠️  No merchant configurations found. Check your .env file.');
+    console.warn('   Add MERCHANT_{key}_VIVA_CLIENT_ID, MERCHANT_{key}_VIVA_CLIENT_SECRET, etc.');
   } else {
-    console.log('✅ Viva Wallet configuration loaded successfully');
+    const merchants = getAllMerchants();
+    console.log(`✅ Loaded ${merchants.length} merchant(s):`);
+    for (const m of merchants) {
+      console.log(`   📌 ${m.merchantKey}`);
+      console.log(`      API Key:     ${m.apiKey}`);
+      console.log(`      Webhook URL: /api/webhooks/viva/${m.merchantKey}`);
+    }
   }
 });
