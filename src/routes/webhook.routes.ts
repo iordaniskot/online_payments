@@ -35,7 +35,7 @@ function verifySignature(payload: string, signature: string, secret: string): bo
  */
 router.get('/viva/rhodesholidays', async (req: Request, res: Response) => {
     try {
-        const merchantKey = req.params['merchantKey'] as string;
+        const merchantKey = "rhodesholidays";
         const merchant = getMerchantByKey(merchantKey);
 
         if (!merchant) {
