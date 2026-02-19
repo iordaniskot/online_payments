@@ -51,13 +51,15 @@ router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
         const credentials = Buffer.from(
             `${merchant.vivaConfig.merchantId}:${merchant.vivaConfig.apiKey}`
         ).toString('base64');
-        console.log(
-            "Credentials for merchantKey", merchantKey, ":", {
-                merchantId: merchant.vivaConfig.merchantId,
-                apiKey: merchant.vivaConfig.apiKey ? '✓ set' : '✗ not set',
-                tokenUrl,
-            }
-        )
+
+        console.log(`Request made from : ${req.ip} to verify webhook for merchantKey ${merchantKey}`);
+        // console.log(
+        //     "Credentials for merchantKey", merchantKey, ":", {
+        //         merchantId: merchant.vivaConfig.merchantId,
+        //         apiKey: merchant.vivaConfig.apiKey ? '✓ set' : '✗ not set',
+        //         tokenUrl,
+        //     }
+        // )
 
         const response = await axios.get(tokenUrl, {
             headers: {
@@ -65,7 +67,7 @@ router.get('/viva/:merchantKey', async (req: Request, res: Response) => {
             },
         });
 
-        console.log("Webhook verification response for merchantKey", merchantKey, ":", {
+        console.log("Webhook verification response :", {
                 status: response.status,
                 data: response.data,
             }
