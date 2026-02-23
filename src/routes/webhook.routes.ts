@@ -147,22 +147,22 @@ router.post("/viva/:merchantKey", async (req: Request, res: Response) => {
     });
 
     // Handle different event types
-    // switch (payload.EventTypeId) {
-    //   case 1796: // Transaction Payment Created
-    //     await handleTransactionPaymentCreated(payload);
-    //     break;
-    //
-    //   case 1798: // Transaction Failed
-    //     await handleTransactionFailed(payload);
-    //     break;
-    //
-    //   case 1797: // Transaction Reversal Created (Refund/Cancel)
-    //     await handleTransactionReversalCreated(payload);
-    //     break;
-    //
-    //   default:
-    //     console.log(`Unhandled event type: ${payload.EventTypeId}`);
-    // }
+    switch (payload.EventTypeId) {
+      case 1796: // Transaction Payment Created
+        await handleTransactionPaymentCreated(payload);
+        break;
+
+      case 1798: // Transaction Failed
+        await handleTransactionFailed(payload);
+        break;
+
+      case 1797: // Transaction Reversal Created (Refund/Cancel)
+        await handleTransactionReversalCreated(payload);
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${payload.EventTypeId}`);
+    }
 
     // Respond with 200 to acknowledge receipt
     res.status(200).json({ received: true });
