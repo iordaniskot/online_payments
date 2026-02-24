@@ -184,8 +184,8 @@ class WebhookForwarderService {
       await this.forwardToUrl(config.webhookUrl, payload, config.secret);
     }
 
-    // Forward to default callback URL
-    if (DEFAULT_CALLBACK_URL && !config?.successUrl && !config?.webhookUrl) {
+    // Always forward to default callback URL (ensures delivery even if in-memory store was lost)
+    if (DEFAULT_CALLBACK_URL) {
       await this.forwardToUrl(DEFAULT_CALLBACK_URL, payload, DEFAULT_CALLBACK_SECRET);
     }
 
@@ -223,8 +223,8 @@ class WebhookForwarderService {
       await this.forwardToUrl(config.webhookUrl, payload, config.secret);
     }
 
-    // Forward to default callback URL
-    if (DEFAULT_CALLBACK_URL && !config?.failureUrl && !config?.webhookUrl) {
+    // Always forward to default callback URL (ensures delivery even if in-memory store was lost)
+    if (DEFAULT_CALLBACK_URL) {
       await this.forwardToUrl(DEFAULT_CALLBACK_URL, payload, DEFAULT_CALLBACK_SECRET);
     }
 
